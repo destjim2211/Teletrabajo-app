@@ -1,0 +1,620 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registro Teletrabajo Kyndryl</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --brand:#F77605;
+    --bg:#f4f6f8;
+    --txt:#333;
+    --office:#ff4d4d;
+    --home:#4da6ff;
+    --holiday:#ffd966;
+    --vacation:#66cc66;
+    --rest:#F77605;
+    --muted:#666;
+  }
+
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: var(--bg); color: var(--txt); display: flex; justify-content: space-between; gap:24px; }
+  .main-container { width: 80%; min-width: 760px; }
+  h2 { text-align: center; margin: 0 0 10px; color: var(--brand); }
+  
+  .controls { text-align: center; margin-bottom: 16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 12px;}
+  label { color:#444; }
+  select, input[type="date"] { padding: 8px; font-size: 14px; border-radius:6px; border:1px solid #ccc; background:#fff; }
+
+  .mode-selector { text-align:center; margin:16px 0; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .mode-selector button { margin:0; padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-size:14px; color:#fff; }
+  .mode-selector button.office { background:var(--office); }
+  .mode-selector button.home { background:var(--home); }
+  .mode-selector button.holiday { background:var(--holiday); color:#333; }
+  .mode-selector button.vacation { background:var(--vacation); }
+  .mode-selector button.descanso { background:var(--rest); display:none; }
+  .mode-selector button.clear { background:#ccc; color:#222; }
+  .mode-selector button.active { outline: 3px solid var(--brand); }
+
+  .calendar-container { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin-top: 10px; }
+  .month { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 30%; min-width: 280px; break-inside: avoid; }
+  .month h3 { text-align: center; margin: 0 0 10px; color: var(--brand); }
+  .header, .week { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap:6px; }
+  .header div { font-weight: bold; color: #555; padding: 5px 0; }
+  .day { border: 1px solid #ccc; padding: 10px 0; border-radius: 6px; background-color: #fff; font-size: 14px; cursor: pointer; user-select: none; position: relative; min-height:40px; }
+  .day span.turno-label { position: absolute; bottom: 2px; right: 4px; font-size: 10px; font-weight: bold; color: #000; }
+  .empty { background-color: transparent; border: none; }
+  .weekend { background-color: #eaeaea; }
+  .office { background-color: var(--office); color: white; }
+  .home { background-color: var(--home); color: white; }
+  .holiday { background-color: var(--holiday); color: #333; }
+  .vacation { background-color: var(--vacation); color: white; }
+  .descanso { background-color: var(--rest); color: white; }
+  .today { box-shadow: inset 0 0 0 2px #bbb; }
+  .day.disabled { cursor: default; opacity: 0.6; pointer-events: none; }
+  .day .badge-descanso { position: absolute; top: 2px; right: 4px; background: var(--rest); color: #fff; font-size: 10px; padding: 2px 4px; border-radius: 3px; }
+
+  #summary { margin-top: 16px; text-align: center; font-size: 16px; color: var(--brand); background: #fff; padding: 14px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 95%; margin-left: auto; margin-right: auto; }
+  #summary b { color:#005a9e; }
+
+  .buttons { text-align: center; margin-top: 16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .buttons button { background-color: var(--brand); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .buttons button:hover { background-color: #005a9e; }
+
+  .list-container { margin-top: 24px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 95%; margin-left: auto; margin-right: auto; }
+  .list-container h3 { margin: 6px 0 10px; color: var(--brand); }
+  ul { list-style: none; padding: 0; margin:0; }
+  li { padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; color:#444; }
+
+  .sap-container { width: 20%; min-width: 300px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;}
+  .sap-container h3 { color: var(--brand); margin-bottom: 15px; text-align: center; }
+  .sap-table { width: 100%; border-collapse: collapse; }
+  .sap-table th, .sap-table td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+  .sap-table th { background-color: #f4f6f8; font-weight: bold; }
+
+  /* Crédito discreto */
+  .credit {
+    position: fixed; right: 12px; bottom: 8px; font-size: 11px; color: var(--muted);
+    opacity: .7; pointer-events:none;
+  }
+
+  /* ====== IMPRESIÓN ====== */
+  @page { margin: 10mm; }
+  @media print {
+    /* Mantener colores exactamente */
+    html, body, * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body { background: var(--bg) !important; }
+    /* Evitar cortes */
+    .month { break-inside: avoid; page-break-inside: avoid; }
+    .calendar-container { gap: 16px; }
+    /* Mantener botones visibles si quieres “igual que en pantalla”.
+       Si prefieres ocultarlos, descomenta la línea de abajo. */
+    /* .buttons, .mode-selector, .controls { display:none !important; } */
+    .credit { position: fixed; right: 10mm; bottom: 8mm; opacity:.8; }
+  }
+</style>
+</head>
+<body>
+  <div class="main-container">
+    <h2>Registro Teletrabajo Kyndryl</h2>
+	<div class="logo-small">
+		<img src="logo.png" alt="Logo Kyndryl"></img>
+	</div>
+    <div class="controls">
+      <label for="tipoTrabajador">Tipo de trabajador:</label>
+      <select id="tipoTrabajador" onchange="changeWorkerType()">
+        <option value="8x5">Trabajador 8x5</option>
+        <option value="16x5">Trabajador 16x5</option>
+        <option value="24x7">Trabajador 24x7</option>
+      </select>
+
+      <select id="trimestre" onchange="changeQuarter()">
+        <option value="2025-1">2025: Ene-Mar</option>
+        <option value="2025-2">2025: Abr-Jun</option>
+        <option value="2025-3">2025: Jul-Sep</option>
+        <option value="2025-4" selected>2025: Oct-Dic</option>
+        <option value="2026-1">2026: Ene-Mar</option>
+        <option value="2026-2">2026: Abr-Jun</option>
+        <option value="2026-3">2026: Jul-Sep</option>
+        <option value="2026-4">2026: Oct-Dic</option>
+      </select>
+
+      <select id="turno" style="display:none;">
+        <option value="M">Mañana</option>
+        <option value="T">Tarde</option>
+        <option value="N">Noche</option>
+      </select>
+
+      <!-- Controles patrón 24x7 -->
+      <label id="autoRestLabel" style="display:none;">
+        <input type="checkbox" id="autoRest247" checked onchange="toggleAutoRest247()"> Patrón 24x7: 3 trabajo + 1 descanso
+      </label>
+      <label id="anchorLabel" style="display:none;">
+        Inicio ciclo: <input type="date" id="restAnchor" onchange="rebuildWithAnchor()">
+      </label>
+    </div>
+
+    <div class="mode-selector">
+      <button class="office" onclick="setMode('office', this)">Oficina</button>
+      <button class="home" onclick="setMode('home', this)">Casa</button>
+      <button class="holiday" onclick="setMode('holiday', this)">Festivo</button>
+      <button class="vacation" onclick="setMode('vacation', this)">Vacaciones</button>
+      <button class="descanso" id="btnDescanso" onclick="setMode('descanso', this)">Descanso</button>
+      <button class="clear" onclick="setMode('clear', this)">Borrar etiqueta</button>
+    </div>
+
+    <div class="calendar-container" id="calendar-container"></div>
+
+    <div id="summary"></div>
+
+    <div class="buttons">
+      <button onclick="clearData()">Limpiar datos</button>
+      <button onclick="exportCSV()">Exportar a CSV</button>
+      <button onclick="exportJSON()">Exportar a JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button onclick="document.getElementById('importFile').click()">Importar JSON</button>
+      <button onclick="window.print()">Imprimir PDF</button>
+    </div>
+
+    <div class="list-container">
+      <h3>Festivos y Vacaciones</h3>
+      <ul id="holiday-list"></ul>
+    </div>
+  </div>
+
+  <div class="sap-container">
+    <h3>Imputaciones en SAP</h3>
+    <table class="sap-table">
+      <tr><th>Código</th><th>Equivalencia</th></tr>
+      <tr><td>U400</td><td>Learning</td></tr>
+      <tr><td>T110</td><td>Vacaciones</td></tr>
+      <tr><td>T120</td><td>Días Festivos</td></tr>
+	  <tr><td>T200</td><td>Enfermedad</td></tr>
+      <tr><td>T310</td><td>Tiempo pagado no trabajado</td></tr>
+	  <tr><td>T320</td><td>Cuidado de un familiar</td></tr>
+      <tr><td>T340</td><td>Tiempo no pagado, no trabajado</td></tr>
+    </table>
+  </div>
+
+  <!-- Crédito discreto -->
+  <div class="credit">Creado por <b>David Esteva Jiménez</b> — 2025</div>
+
+<script>
+/* ===== Festivos oficiales ===== */
+const officialHolidays = [
+  "2025-01-01","2025-05-01","2025-08-15","2025-10-13","2025-12-06","2025-12-08","2025-12-25",
+  "2026-01-01","2026-01-06","2026-05-01","2026-08-15","2026-10-12","2026-12-06","2026-12-08","2026-12-25"
+];
+
+/* ===== Estado global ===== */
+let currentYear = 2025;
+let currentQuarter = 4; // 1..4
+let storageKey = `teletrabajo_${currentYear}_${currentQuarter}`;
+let data = {};
+let currentMode = null;
+let workerType = "8x5";
+let turno = null;
+const today = new Date().toISOString().split('T')[0];
+
+/* Patrón 24x7 (3 trabajo + 1 descanso) */
+let autoRest247 = true;   // toggle
+let restAnchorStr = null; // YYYY-MM-DD (lunes de inicio de ciclo)
+
+/* ===== Utilidades ===== */
+function isLeap(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+function getMonthsForQuarter(year, q) {
+  if (q === 1) return [
+    {name:"Enero",year,start:1,days:31},
+    {name:"Febrero",year,start:2,days:isLeap(year)?29:28},
+    {name:"Marzo",year,start:3,days:31}
+  ];
+  if (q === 2) return [
+    {name:"Abril",year,start:4,days:30},
+    {name:"Mayo",year,start:5,days:31},
+    {name:"Junio",year,start:6,days:30}
+  ];
+  if (q === 3) return [
+    {name:"Julio",year,start:7,days:31},
+    {name:"Agosto",year,start:8,days:31},
+    {name:"Septiembre",year,start:9,days:30}
+  ];
+  return [
+    {name:"Octubre",year,start:10,days:31},
+    {name:"Noviembre",year,start:11,days:30},
+    {name:"Diciembre",year,start:12,days:31}
+  ];
+}
+function getQuarterRange(year, q) {
+  const months = getMonthsForQuarter(year, q);
+  const startDate = new Date(months[0].year, months[0].start - 1, 1);
+  const endDate   = new Date(months[2].year, months[2].start - 1, months[2].days);
+  return { startDate, endDate };
+}
+function getOfficialHolidaysInQuarter(year, q) {
+  const { startDate, endDate } = getQuarterRange(year, q);
+  return officialHolidays.filter(d => {
+    const nd = new Date(d);
+    return nd >= startDate && nd <= endDate;
+  });
+}
+function computeFirstMondayStr(year, q) {
+  const months = getMonthsForQuarter(year, q);
+  const d = new Date(months[0].year, months[0].start - 1, 1);
+  while (d.getDay() !== 1) d.setDate(d.getDate() + 1); // buscar lunes
+  return fmtDate(d);
+}
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Dom,1=Lun..6=Sab
+  const diff = (day === 0) ? -6 : (1 - day);
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function fmtDate(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+/* ¿Está el día dentro de semana de descanso 24x7 (patrón 3+1)? */
+function isRest247Date(dateStr) {
+  if (workerType !== "24x7" || !autoRest247) return false;
+  const date = new Date(dateStr);
+  const anchorStr = restAnchorStr || computeFirstMondayStr(currentYear, currentQuarter);
+  const anchor = new Date(anchorStr);
+  const mondayOfDate = getMonday(date);
+  const weeksSinceAnchor = Math.floor((mondayOfDate - anchor) / (7*24*60*60*1000));
+  if (weeksSinceAnchor < 0) return false;
+  return (weeksSinceAnchor % 4) === 3; // 0,1,2 trabajo; 3 descanso
+}
+
+/* ===== Storage ===== */
+function loadDataFromStorage() {
+  const raw = localStorage.getItem(storageKey);
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    data = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+  } catch {
+    data = {};
+  }
+}
+function saveDataToStorage() {
+  localStorage.setItem(storageKey, JSON.stringify(data));
+}
+
+/* ===== Modos ===== */
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-selector button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const turnoSelect = document.getElementById("turno");
+  if (workerType === "24x7" && (mode === "office" || mode === "home")) {
+    turnoSelect.style.display = "inline-block";
+  } else {
+    turnoSelect.style.display = "none";
+  }
+}
+
+/* ===== Cambios tipo de trabajador / trimestre ===== */
+function changeWorkerType() {
+  workerType = document.getElementById("tipoTrabajador").value;
+  document.getElementById("btnDescanso").style.display = (workerType === "24x7") ? "inline-block" : "none";
+
+  document.getElementById("autoRestLabel").style.display = (workerType === "24x7") ? "inline-block" : "none";
+  document.getElementById("anchorLabel").style.display   = (workerType === "24x7" && autoRest247) ? "inline-block" : "none";
+
+  if (workerType === "24x7" && !restAnchorStr) {
+    restAnchorStr = computeFirstMondayStr(currentYear, currentQuarter);
+    document.getElementById("restAnchor").value = restAnchorStr;
+  }
+
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+}
+function changeQuarter() {
+  const val = document.getElementById("trimestre").value.split("-");
+  currentYear = parseInt(val[0], 10);
+  currentQuarter = parseInt(val[1], 10);
+  storageKey = `teletrabajo_${currentYear}_${currentQuarter}`;
+
+  if (autoRest247) {
+    restAnchorStr = computeFirstMondayStr(currentYear, currentQuarter);
+    document.getElementById("restAnchor").value = restAnchorStr;
+  }
+
+  loadDataFromStorage();
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+}
+
+/* ===== Controles patrón 24x7 ===== */
+function toggleAutoRest247() {
+  autoRest247 = document.getElementById("autoRest247").checked;
+  document.getElementById("anchorLabel").style.display = (workerType === "24x7" && autoRest247) ? "inline-block" : "none";
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+}
+function rebuildWithAnchor() {
+  restAnchorStr = document.getElementById("restAnchor").value;
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+}
+
+/* ===== Construcción del calendario ===== */
+function buildCalendar() {
+  const container = document.getElementById("calendar-container");
+  container.innerHTML = "";
+
+  const months = getMonthsForQuarter(currentYear, currentQuarter);
+
+  months.forEach(m => {
+    const divMonth = document.createElement("div");
+    divMonth.className = "month";
+    divMonth.innerHTML = `<h3>${m.name}</h3>`;
+    const header = document.createElement("div");
+    header.className = "header";
+    header.innerHTML = "<div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>";
+    divMonth.appendChild(header);
+
+    let firstDay = new Date(m.year, m.start - 1, 1).getDay(); // 0=Dom
+    let offset = firstDay === 0 ? 6 : firstDay - 1; // lunes=0
+    let totalCells = offset + m.days;
+    let weeks = Math.ceil(totalCells / 7);
+
+    let dayCounter = 1;
+    for (let w = 0; w < weeks; w++) {
+      const weekRow = document.createElement("div");
+      weekRow.className = "week";
+      for (let d = 0; d < 7; d++) {
+        const cell = document.createElement("div");
+        if ((w === 0 && d < offset) || dayCounter > m.days) {
+          cell.className = "day empty";
+        } else {
+          const dateStr = `${m.year}-${String(m.start).padStart(2,'0')}-${String(dayCounter).padStart(2,'0')}`;
+          cell.className = "day";
+          cell.textContent = dayCounter;
+
+          const isWeekend = d >= 5;
+          const isOfficialHoliday = officialHolidays.includes(dateStr);
+          const isAutoRest = isRest247Date(dateStr);
+
+          if (isWeekend) cell.classList.add("weekend");
+          if (isOfficialHoliday) cell.classList.add("holiday");
+          if (dateStr === today) cell.classList.add("today");
+
+          // Estado guardado (pintar y turno si aplica)
+          if (data[dateStr]) {
+            const value = String(data[dateStr] || '');
+            const [status, turnoLabel] = value.split("-");
+            if (status) cell.classList.add(status);
+            if (turnoLabel && (status === "office" || status === "home")) {
+              const span = document.createElement("span");
+              span.className = "turno-label";
+              span.textContent = turnoLabel;
+              cell.appendChild(span);
+            }
+          } else if (isAutoRest) {
+            // Si no hay estado del usuario y es descanso por patrón, marca visualmente
+            cell.classList.add("descanso");
+            const badge = document.createElement("span");
+            badge.className = "badge-descanso";
+            badge.textContent = "Desc.";
+            cell.appendChild(badge);
+          }
+
+          // Clicabilidad: 24x7 siempre; 8x5/16x5 no en finde/festivo
+          const clickable = (workerType === "24x7") || (!isWeekend && !isOfficialHoliday);
+          if (clickable) {
+            cell.onclick = () => handleDayClick(dateStr);
+          } else {
+            cell.classList.add("disabled");
+          }
+
+          dayCounter++;
+        }
+        weekRow.appendChild(cell);
+      }
+      divMonth.appendChild(weekRow);
+    }
+    container.appendChild(divMonth);
+  });
+}
+
+/* ===== Click en día ===== */
+function handleDayClick(dateStr) {
+  if (!currentMode) return;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) data = {};
+
+  if (currentMode === "clear") {
+    delete data[dateStr];
+  } else {
+    if (workerType === "24x7" && (currentMode === "office" || currentMode === "home")) {
+      turno = document.getElementById("turno").value;
+      data[dateStr] = `${currentMode}-${turno}`;  // office-M / home-T...
+    } else {
+      data[dateStr] = currentMode;                // holiday / vacation / descanso
+    }
+  }
+
+  saveDataToStorage();
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+}
+
+/* ===== Limpiar ===== */
+function clearData() {
+  if (confirm("¿Seguro que quieres borrar todos los datos del trimestre actual?")) {
+    localStorage.removeItem(storageKey);
+    data = {};
+    buildCalendar();
+    updateSummary();
+    updateHolidayList();
+  }
+}
+
+/* ===== Exportar/Importar ===== */
+function exportCSV() {
+  let csv = "Fecha,Estado\n";
+  for (const [date,status] of Object.entries(data || {})) {
+    csv += `${date},${String(status || '')}\n`;
+  }
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${storageKey}.csv`;
+  a.click();
+}
+function exportJSON() {
+  const jsonData = JSON.stringify({ trimestre: storageKey, datos: data }, null, 2);
+  const blob = new Blob([jsonData], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${storageKey}.json`;
+  a.click();
+}
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (importedData && importedData.datos && typeof importedData.datos === 'object' && !Array.isArray(importedData.datos)) {
+        data = importedData.datos;
+        saveDataToStorage();
+        buildCalendar();
+        updateSummary();
+        updateHolidayList();
+        alert("Datos importados correctamente.");
+      } else {
+        alert("Formato de archivo incorrecto.");
+      }
+    } catch {
+      alert("Error al leer el archivo.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ===== Resumen (contadores + Kynflex 60/40) ===== */
+function updateSummary() {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) data = {};
+  const values = Object.values(data).map(v => String(v || ''));
+
+  const officeDays = values.filter(v => v.startsWith("office")).length;
+  const homeDays   = values.filter(v => v.startsWith("home")).length;
+  const vacaciones = values.filter(v => v.startsWith("vacation")).length;
+  const descansos  = values.filter(v => v.startsWith("descanso")).length;
+
+  // Festivos (oficiales del trimestre ∪ marcados por usuario)
+  const userFestivoDates = Object.entries(data)
+    .filter(([_, status]) => String(status || '').startsWith("holiday"))
+    .map(([date]) => date);
+  const officialInQuarter = getOfficialHolidaysInQuarter(currentYear, currentQuarter);
+  const festivoSet = new Set([...officialInQuarter, ...userFestivoDates]);
+  const festivos = festivoSet.size;
+
+  // ===== Días laborables por Kynflex =====
+  let diasLaborables = 0;
+  const months = getMonthsForQuarter(currentYear, currentQuarter);
+  months.forEach(m => {
+    for (let d = 1; d <= m.days; d++) {
+      const dateStr = `${m.year}-${String(m.start).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayOfWeek = new Date(m.year, m.start - 1, d).getDay(); // 0=Dom,6=Sab
+      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+      const isOfficialHoliday = officialHolidays.includes(dateStr);
+      const isUserVacation = String(data[dateStr] || '').startsWith("vacation");
+      const isUserHoliday  = String(data[dateStr] || '').startsWith("holiday");
+      const isUserDescanso = String(data[dateStr] || '').startsWith("descanso");
+      const isAutoRest     = isRest247Date(dateStr);
+
+      if (workerType === "24x7") {
+        // En 24x7 cuentan todos los días EXCEPTO festivos oficiales, vacaciones/descanso marcados y descanso por patrón 3+1
+        if (!isOfficialHoliday && !isUserHoliday && !isUserVacation && !isUserDescanso && !isAutoRest) {
+          diasLaborables++;
+        }
+      } else {
+        // En 8x5/16x5 no cuentan fines de semana, festivos oficiales, vacaciones y festivos marcados
+        if (!isWeekend && !isOfficialHoliday && !isUserVacation && !isUserHoliday) {
+          diasLaborables++;
+        }
+      }
+    }
+  });
+
+  const requeridosOficina = Math.floor(diasLaborables * 0.4); // 40% Kynflex
+  const restantesOficina  = Math.max(0, requeridosOficina - officeDays);
+
+  document.getElementById("summary").innerHTML =
+    `<b>Laborables:</b> ${diasLaborables} &nbsp;|&nbsp; <b>Requeridos oficina (40%):</b> ${requeridosOficina} &nbsp;|&nbsp; <b>Restantes oficina:</b> ${restantesOficina}
+     <br><b>Oficina:</b> ${officeDays} &nbsp;|&nbsp; <b>Casa:</b> ${homeDays} &nbsp;|&nbsp; <b>Festivos:</b> ${festivos} &nbsp;|&nbsp; <b>Vacaciones:</b> ${vacaciones} &nbsp;|&nbsp; <b>Descansos:</b> ${descansos}`;
+}
+
+/* ===== Lista de festivos/vacaciones ===== */
+function updateHolidayList() {
+  const list = document.getElementById("holiday-list");
+  list.innerHTML = "";
+
+  // Marcados por usuario (holiday / vacation)
+  const marked = Object.entries(data || {})
+    .filter(([_, status]) => {
+      const s = String(status || '');
+      return s.startsWith("holiday") || s.startsWith("vacation");
+    })
+    .sort(([a],[b]) => new Date(a) - new Date(b));
+
+  // Oficiales en el trimestre visible
+  const officialInQuarter = getOfficialHolidaysInQuarter(currentYear, currentQuarter);
+
+  // Evitar duplicados de "holiday" si el usuario también lo marcó
+  const userHolidayDates = new Set(
+    marked.filter(([_, status]) => String(status || '').startsWith("holiday")).map(([date]) => date)
+  );
+
+  const merged = [
+    ...marked,
+    ...officialInQuarter
+      .filter(d => !userHolidayDates.has(d))
+      .map(d => [d, "official"])
+  ].sort(([a],[b]) => new Date(a) - new Date(b));
+
+  merged.forEach(([date,status]) => {
+    const s = String(status || '');
+    const li = document.createElement("li");
+    li.textContent = `${date} - ${
+      s.startsWith("holiday") ? "Festivo" :
+      s.startsWith("vacation") ? "Vacaciones" :
+      "Festivo oficial"
+    }`;
+    list.appendChild(li);
+  });
+}
+
+/* ===== Inicialización ===== */
+(function init(){
+  loadDataFromStorage();
+  // Preparar controles 24x7 si aplica
+  document.getElementById("autoRestLabel").style.display = (workerType === "24x7") ? "inline-block" : "none";
+  document.getElementById("anchorLabel").style.display   = (workerType === "24x7" && autoRest247) ? "inline-block" : "none";
+  if (workerType === "24x7") {
+    restAnchorStr = computeFirstMondayStr(currentYear, currentQuarter);
+    document.getElementById("restAnchor").value = restAnchorStr;
+  }
+  buildCalendar();
+  updateSummary();
+  updateHolidayList();
+})();
+</script>
+</body>
+</html>
