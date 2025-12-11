@@ -72,6 +72,9 @@
   .sap-table th, .sap-table td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
   .sap-table th { background-color: #f4f6f8; font-weight: bold; }
 
+  .info-btn {background:#F77605; color:#fff; font-weight:bold; border:none; padding:10px 15px; border-radius:6px; cursor:pointer;}
+  .info-btn:hover {background:#d95f04;}
+	
   /* Crédito discreto */
   .credit {
     position: fixed; right: 12px; bottom: 8px; font-size: 11px; color: var(--muted);
@@ -154,6 +157,7 @@
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
       <button onclick="document.getElementById('importFile').click()">Importar JSON</button>
       <button onclick="window.print()">Imprimir PDF</button>
+      <button class="info-btn" onclick="document.getElementById('infoModal').style.display='flex'">ℹ Información</button>
     </div>
 
     <div class="list-container">
@@ -616,5 +620,136 @@ function updateHolidayList() {
   updateHolidayList();
 })();
 </script>
+
+<!-- Modal -->
+<div id="infoModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
+  <div style="background:#fff; width:80%; max-width:900px; padding:20px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.3); overflow-y:auto; max-height:90%;">
+    <button onclick="document.getElementById('infoModal').style.display='none'" style="float:right; background:#F77605; color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">Cerrar ✖</button>
+    <div id="markdownContent" style="margin-top:20px; font-family:Arial, sans-serif;"></div>
+  </div>
+</div>
+
+
+<!-- Librería para convertir Markdown a HTML -->
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  const markdownText = `
+# 📌 Registro Teletrabajo Kyndryl
+
+Aplicación web para gestionar el teletrabajo y la asistencia a oficina según las políticas **Kynflex** y las reglas específicas para distintos tipos de trabajadores.
+
+---
+
+## ✅ ¿Qué hace esta aplicación?
+
+Esta herramienta permite **planificar y registrar** los días de trabajo en **oficina**, **casa**, **festivos**, **vacaciones** y **descansos** para cada trimestre, cumpliendo las reglas corporativas:
+
+- **Kynflex 60/40**:
+  - 60% de los días laborables pueden ser teletrabajo (Casa).
+  - 40% son de asistencia obligatoria a la oficina.
+- **Festivos oficiales** y **vacaciones** no cuentan como laborables.
+- **Trabajadores 24x7** tienen patrón especial:
+  - Cada 3 semanas de trabajo → 1 semana de descanso.
+
+---
+
+## 🧩 Funcionalidades principales
+
+- **Calendario trimestral** (3 meses) con selección por clic.
+- **Modos de marcado**:
+  - Oficina
+  - Casa
+  - Festivo
+  - Vacaciones
+  - Descanso (solo para 24x7)
+- **Turnos (M/T/N)** para 24x7 en días de Oficina o Casa.
+- **Contadores dinámicos**:
+  - Laborables
+  - Requeridos oficina (40%)
+  - Restantes oficina
+  - Oficina, Casa, Festivos, Vacaciones, Descansos
+- **Exportar/Importar** datos en CSV y JSON.
+- **Impresión en PDF** con colores idénticos a la pantalla.
+- **Persistencia local** por trimestre (usa localStorage).
+
+---
+
+## 👥 Tipos de trabajadores y reglas
+
+### 🔹 **Trabajador 8x5**
+- **Horario**: Lunes a viernes.
+- **Reglas**:
+  - Fines de semana no cuentan como laborables.
+  - Festivos oficiales y vacaciones no son laborables.
+  - Aplica regla Kynflex 60/40.
+- **Cómo funciona en la app**:
+  - Solo puedes marcar días laborables (L-V).
+  - El contador calcula los días laborables excluyendo festivos y vacaciones.
+  - Se muestra cuántos días debes ir a oficina (40%) y cuántos puedes teletrabajar (60%).
+
+---
+
+### 🔹 **Trabajador 16x5**
+- **Horario**: Igual que 8x5 (solo cambia la jornada, no afecta la lógica del calendario).
+- **Reglas**:
+  - Fines de semana no cuentan como laborables.
+  - Festivos oficiales y vacaciones no son laborables.
+  - Aplica regla Kynflex 60/40.
+- **Cómo funciona en la app**:
+  - Igual que 8x5, pero puedes marcar turnos si se habilita en la lógica futura.
+
+---
+
+### 🔹 **Trabajador 24x7**
+- **Horario**: Todos los días cuentan como laborables **excepto**:
+  - Festivos oficiales.
+  - Vacaciones.
+  - Descansos (marcados manualmente o por patrón automático).
+- **Patrón automático opcional**:
+  - Cada 3 semanas de trabajo → 1 semana de descanso.
+  - Puedes activar/desactivar el patrón y ajustar la fecha de inicio del ciclo.
+- **Cómo funciona en la app**:
+  - Puedes marcar cualquier día como Oficina, Casa, Festivo, Vacaciones o Descanso.
+  - Si el patrón está activo, la app marca visualmente las semanas de descanso.
+  - El contador excluye festivos, vacaciones y descansos del cálculo de laborables.
+  - Aplica regla Kynflex 60/40 sobre los días laborables restantes.
+
+---
+
+## 🖥 Cómo usarla
+
+1. **Selecciona tipo de trabajador** y trimestre.
+2. **Elige el modo** (Oficina, Casa, Festivo, Vacaciones, Descanso).
+3. **Haz clic en los días** para asignar el estado.
+4. Para 24x7:
+   - Activa/desactiva el patrón automático de descanso.
+   - Ajusta la fecha de inicio del ciclo si es necesario.
+5. Consulta el **resumen** para ver:
+   - Laborables
+   - Requeridos oficina
+   - Restantes oficina
+6. **Exporta** tus datos o **imprime en PDF**.
+
+---
+
+## 📂 Tecnologías usadas
+
+- **HTML5**, **CSS3**, **JavaScript** puro.
+- **LocalStorage** para persistencia.
+- Compatible con navegadores modernos (Chrome, Edge, Firefox).
+
+---
+
+## 🚀 Acceso
+
+https://destjim2211.github.io/Teletrabajo-app/
+
+ 
+`;
+
+  document.getElementById('markdownContent').innerHTML = marked.parse(markdownText);
+</script>
+
 </body>
 </html>
