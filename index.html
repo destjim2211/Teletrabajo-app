@@ -54,6 +54,22 @@
   .day.disabled { cursor: default; opacity: 0.6; pointer-events: none; }
   .day .badge-descanso { position: absolute; top: 2px; right: 4px; background: var(--rest); color: #fff; font-size: 10px; padding: 2px 4px; border-radius: 3px; }
 
+  /* Badge para festivo trabajado (24x7) */
+  .day .badge-work {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    background: #005a9e; /* azul */
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+  /* Realce sutil del borde si se trabaja en festivo */
+  .holiday.worked {
+    box-shadow: inset 0 0 0 2px #005a9e;
+  }
+
   #summary { margin-top: 16px; text-align: center; font-size: 16px; color: var(--brand); background: #fff; padding: 14px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 95%; margin-left: auto; margin-right: auto; }
   #summary b { color:#005a9e; }
 
@@ -74,7 +90,7 @@
 
   .info-btn {background:#F77605; color:#fff; font-weight:bold; border:none; padding:10px 15px; border-radius:6px; cursor:pointer;}
   .info-btn:hover {background:#d95f04;}
-	
+    
   /* Crédito discreto */
   .credit {
     position: fixed; right: 12px; bottom: 8px; font-size: 11px; color: var(--muted);
@@ -84,14 +100,10 @@
   /* ====== IMPRESIÓN ====== */
   @page { margin: 10mm; }
   @media print {
-    /* Mantener colores exactamente */
     html, body, * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     body { background: var(--bg) !important; }
-    /* Evitar cortes */
     .month { break-inside: avoid; page-break-inside: avoid; }
     .calendar-container { gap: 16px; }
-    /* Mantener botones visibles si quieres “igual que en pantalla”.
-       Si prefieres ocultarlos, descomenta la línea de abajo. */
     /* .buttons, .mode-selector, .controls { display:none !important; } */
     .credit { position: fixed; right: 10mm; bottom: 8mm; opacity:.8; }
   }
@@ -100,9 +112,10 @@
 <body>
   <div class="main-container">
     <h2>Registro Teletrabajo Kyndryl</h2>
-	<div class="logo-small">
-		<img src="logo.png" alt="Logo Kyndryl"></img>
-	</div>
+    <div class="logo-small">
+      <img src="logo.png" alt="Logo Kyndryl"></img>
+    </div>
+
     <div class="controls">
       <label for="tipoTrabajador">Tipo de trabajador:</label>
       <select id="tipoTrabajador" onchange="changeWorkerType()">
@@ -141,6 +154,8 @@
       <button class="office" onclick="setMode('office', this)">Oficina</button>
       <button class="home" onclick="setMode('home', this)">Casa</button>
       <button class="holiday" onclick="setMode('holiday', this)">Festivo</button>
+      <!-- Modo opcional para festivo trabajado -->
+      <button class="holiday" id="btnHolidayWorked" style="display:none" onclick="setMode('holiday-work', this)">Festivo trabajado</button>
       <button class="vacation" onclick="setMode('vacation', this)">Vacaciones</button>
       <button class="descanso" id="btnDescanso" onclick="setMode('descanso', this)">Descanso</button>
       <button class="clear" onclick="setMode('clear', this)">Borrar etiqueta</button>
@@ -173,9 +188,9 @@
       <tr><td>U400</td><td>Learning</td></tr>
       <tr><td>T110</td><td>Vacaciones</td></tr>
       <tr><td>T120</td><td>Días Festivos</td></tr>
-	  <tr><td>T200</td><td>Enfermedad</td></tr>
+      <tr><td>T200</td><td>Enfermedad</td></tr>
       <tr><td>T310</td><td>Tiempo pagado no trabajado</td></tr>
-	  <tr><td>T320</td><td>Cuidado de un familiar</td></tr>
+      <tr><td>T320</td><td>Cuidado de un familiar</td></tr>
       <tr><td>T340</td><td>Tiempo no pagado, no trabajado</td></tr>
     </table>
   </div>
@@ -184,6 +199,12 @@
   <div class="credit">Creado por <b>David Esteva Jiménez</b> — 2025</div>
 
 <script>
+/* ===== Config ===== */
+// Si es true, un festivo oficial marcado como "Oficina/Casa" (o "Festivo trabajado")
+// por un 24x7 contará como día laborable dentro del 60/40.
+// Si lo pones en false, NO contará como laborable.
+const HOLIDAY_WORKED_COUNTS_AS_LABORABLE = true;
+
 /* ===== Festivos oficiales ===== */
 const officialHolidays = [
   "2025-01-01","2025-05-01","2025-08-15","2025-10-13","2025-12-06","2025-12-08","2025-12-25",
@@ -307,6 +328,7 @@ function setMode(mode, btn) {
 function changeWorkerType() {
   workerType = document.getElementById("tipoTrabajador").value;
   document.getElementById("btnDescanso").style.display = (workerType === "24x7") ? "inline-block" : "none";
+  document.getElementById("btnHolidayWorked").style.display = (workerType === "24x7") ? "inline-block" : "none";
 
   document.getElementById("autoRestLabel").style.display = (workerType === "24x7") ? "inline-block" : "none";
   document.getElementById("anchorLabel").style.display   = (workerType === "24x7" && autoRest247) ? "inline-block" : "none";
@@ -414,6 +436,18 @@ function buildCalendar() {
             cell.appendChild(badge);
           }
 
+          // Visual extra: si es festivo oficial y 24x7 marcó Oficina/Casa o “festivo trabajado”
+          const saved = String(data[dateStr] || '');
+          const markedOfficeOrHome = saved.startsWith('office') || saved.startsWith('home');
+          const markedHolidayWorked = saved === 'holiday-work';
+          if (isOfficialHoliday && (markedOfficeOrHome || markedHolidayWorked)) {
+            cell.classList.add('worked');
+            const badgeWork = document.createElement("span");
+            badgeWork.className = "badge-work";
+            badgeWork.textContent = "Trabaja";
+            cell.appendChild(badgeWork);
+          }
+
           // Clicabilidad: 24x7 siempre; 8x5/16x5 no en finde/festivo
           const clickable = (workerType === "24x7") || (!isWeekend && !isOfficialHoliday);
           if (clickable) {
@@ -439,6 +473,9 @@ function handleDayClick(dateStr) {
 
   if (currentMode === "clear") {
     delete data[dateStr];
+  } else if (currentMode === "holiday-work") {
+    // Marca especial de festivo trabajado (sin turno)
+    data[dateStr] = "holiday-work";
   } else {
     if (workerType === "24x7" && (currentMode === "office" || currentMode === "home")) {
       turno = document.getElementById("turno").value;
@@ -538,18 +575,31 @@ function updateSummary() {
       const dayOfWeek = new Date(m.year, m.start - 1, d).getDay(); // 0=Dom,6=Sab
       const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
       const isOfficialHoliday = officialHolidays.includes(dateStr);
-      const isUserVacation = String(data[dateStr] || '').startsWith("vacation");
-      const isUserHoliday  = String(data[dateStr] || '').startsWith("holiday");
-      const isUserDescanso = String(data[dateStr] || '').startsWith("descanso");
+
+      const statusStr = String(data[dateStr] || '');
+      const isUserVacation = statusStr.startsWith("vacation");
+      const isUserHoliday  = statusStr.startsWith("holiday");       // incluye "holiday-work" para evitar contarlo si no quieres
+      const isUserDescanso = statusStr.startsWith("descanso");
       const isAutoRest     = isRest247Date(dateStr);
 
+      const markedOfficeOrHome = statusStr.startsWith('office') || statusStr.startsWith('home');
+      const markedHolidayWorked = (statusStr === 'holiday-work');
+
+      // Override: festivo oficial trabajado por 24x7 (Oficina/Casa o "holiday-work")
+      const holidayWorkedOverride = isOfficialHoliday && (markedOfficeOrHome || markedHolidayWorked);
+
       if (workerType === "24x7") {
-        // En 24x7 cuentan todos los días EXCEPTO festivos oficiales, vacaciones/descanso marcados y descanso por patrón 3+1
-        if (!isOfficialHoliday && !isUserHoliday && !isUserVacation && !isUserDescanso && !isAutoRest) {
-          diasLaborables++;
+        // No cuentan: vacaciones, festivo marcado por usuario (holiday), descanso usuario, descanso automático
+        // PERO si HOLIDAY_WORKED_COUNTS_AS_LABORABLE y es override, sí cuenta.
+        if (!isUserVacation && !isUserDescanso && !isAutoRest) {
+          if (!isOfficialHoliday && !isUserHoliday) {
+            diasLaborables++;
+          } else if (HOLIDAY_WORKED_COUNTS_AS_LABORABLE && holidayWorkedOverride) {
+            diasLaborables++;
+          }
         }
       } else {
-        // En 8x5/16x5 no cuentan fines de semana, festivos oficiales, vacaciones y festivos marcados
+        // 8x5/16x5: no cuentan fines de semana, festivos oficiales, vacaciones y festivos marcados
         if (!isWeekend && !isOfficialHoliday && !isUserVacation && !isUserHoliday) {
           diasLaborables++;
         }
@@ -581,7 +631,19 @@ function updateHolidayList() {
   // Oficiales en el trimestre visible
   const officialInQuarter = getOfficialHolidaysInQuarter(currentYear, currentQuarter);
 
-  // Evitar duplicados de "holiday" si el usuario también lo marcó
+  // "Festivo trabajado" oficial (Oficina/Casa o holiday-work)
+  const workedHolidayDates = new Set(
+    Object.entries(data || {})
+      .filter(([date, status]) => {
+        const s = String(status || '');
+        const markedOfficeOrHome = s.startsWith('office') || s.startsWith('home');
+        const markedHolidayWorked = (s === 'holiday-work');
+        return officialInQuarter.includes(date) && (markedOfficeOrHome || markedHolidayWorked);
+      })
+      .map(([date]) => date)
+  );
+
+  // Evitar duplicados si el usuario también marcó "holiday"
   const userHolidayDates = new Set(
     marked.filter(([_, status]) => String(status || '').startsWith("holiday")).map(([date]) => date)
   );
@@ -590,15 +652,16 @@ function updateHolidayList() {
     ...marked,
     ...officialInQuarter
       .filter(d => !userHolidayDates.has(d))
-      .map(d => [d, "official"])
+      .map(d => [d, workedHolidayDates.has(d) ? "official-worked" : "official"])
   ].sort(([a],[b]) => new Date(a) - new Date(b));
 
   merged.forEach(([date,status]) => {
     const s = String(status || '');
     const li = document.createElement("li");
     li.textContent = `${date} - ${
-      s.startsWith("holiday") ? "Festivo" :
+      s.startsWith("holiday") ? (s === "holiday-work" ? "Festivo trabajado (24x7)" : "Festivo") :
       s.startsWith("vacation") ? "Vacaciones" :
+      s === "official-worked" ? "Festivo trabajado (24x7)" :
       "Festivo oficial"
     }`;
     list.appendChild(li);
@@ -611,6 +674,8 @@ function updateHolidayList() {
   // Preparar controles 24x7 si aplica
   document.getElementById("autoRestLabel").style.display = (workerType === "24x7") ? "inline-block" : "none";
   document.getElementById("anchorLabel").style.display   = (workerType === "24x7" && autoRest247) ? "inline-block" : "none";
+  document.getElementById("btnHolidayWorked").style.display = (workerType === "24x7") ? "inline-block" : "none";
+  document.getElementById("btnDescanso").style.display = (workerType === "24x7") ? "inline-block" : "none";
   if (workerType === "24x7") {
     restAnchorStr = computeFirstMondayStr(currentYear, currentQuarter);
     document.getElementById("restAnchor").value = restAnchorStr;
@@ -628,7 +693,6 @@ function updateHolidayList() {
     <div id="markdownContent" style="margin-top:20px; font-family:Arial, sans-serif;"></div>
   </div>
 </div>
-
 
 <!-- Librería para convertir Markdown a HTML -->
 
@@ -743,9 +807,7 @@ Esta herramienta permite **planificar y registrar** los días de trabajo en **of
 
 ## 🚀 Acceso
 
-https://destjim2211.github.io/Teletrabajo-app/
-
- 
+https://teletrabajo.kyndryl-granada.es/
 `;
 
   document.getElementById('markdownContent').innerHTML = marked.parse(markdownText);
